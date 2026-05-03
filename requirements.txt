@@ -1,2 +1,2 @@
-MaxAPImaxapi-python
 aiohttp
+python-dotenv   # на всякий случай, если понадобится читать .env
