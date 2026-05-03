@@ -30,8 +30,9 @@ class HealthHandler(BaseHTTPRequestHandler):
 
 def run_http_server():
     port = int(os.getenv("PORT", 8101))
-    server = HTTPServer(("::", port), HealthHandler)
-    print(f"HTTP health server on port {port}")
+    host = os.getenv("IP", "0.0.0.0")
+    server = HTTPServer((host, port), HealthHandler)
+    print(f"HTTP health server on {host}:{port}")
     server.serve_forever()
 
 async def main():
@@ -66,7 +67,6 @@ async def main():
             print("✅ Записан!")
             last_training_time = now
 
-    # Запускаем HTTP-сервер перед клиентом
     threading.Thread(target=run_http_server, daemon=True).start()
     await asyncio.sleep(0.5)
     await client.start()
