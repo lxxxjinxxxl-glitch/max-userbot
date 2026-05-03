@@ -49,53 +49,57 @@ async def long_poll_worker():
                 if _marker:
                     params["marker"] = _marker
 
-                async with session.get(f"{API_BASE}/updates", headers=headers, params=params) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        _marker = data.get("marker", _marker)
-                        for upd in data.get("updates", []):
-                            if upd.get("update_type") != "message_created":
-                                continue
-                            msg = upd.get("message", {})
-                            chat_id = msg.get("recipient", {}).get("chat_id")
-                            if str(chat_id) != str(TARGET_CHAT_ID):
-                                continue
-                            text = msg.get("body", {}).get("text", "")
-                            if not text:
-                                continue
-                            print(f"💬 {text[:80]}")
-
-                            if is_training(text):
-                                now = time.time()
-                                if now - last_training_time < COOLDOWN:
-                                    print("🔁 Cooldown, skip")
+                try:
+                    async with session.get(f"{API_BASE}/updates", headers=headers, params=params) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            _marker = data.get("marker", _marker)
+                            for upd in data.get("updates", []):
+                                if upd.get("update_type") != "message_created":
                                     continue
-                                print(f"🎯 Training detected, waiting {DELAY}s...")
-                                await asyncio.sleep(DELAY)
+                                msg = upd.get("message", {})
+                                chat_id = msg.get("recipient", {}).get("chat_id")
+                                if str(chat_id) != str(TARGET_CHAT_ID):
+                                    continue
+                                text = msg.get("body", {}).get("text", "")
+                                if not text:
+                                    continue
+                                print(f"💬 {text[:80]}")
 
-                                # Send message
-                                send_payload = {
-                                    "chat_id": int(TARGET_CHAT_ID),
-                                    "text": MY_SURNAMES
-                                }
-                                async with session.post(
-                                    f"{API_BASE}/messages",
-                                    headers=headers,
-                                    json=send_payload
-                                ) as send_resp:
-                                    if send_resp.status == 200:
-                                        print("✅ Sent!")
-                                        last_training_time = now
-                                    else:
-                                        print(f"Send error: {send_resp.status}")
-                    else:
-                        print(f"Poll error {resp.status}")
-                        if resp.status == 429:
-                            await asyncio.sleep(10)
+                                if is_training(text):
+                                    now = time.time()
+                                    if now - last_training_time < COOLDOWN:
+                                        print("🔁 Cooldown, skip")
+                                        continue
+                                    print(f"🎯 Training detected, waiting {DELAY}s...")
+                                    await asyncio.sleep(DELAY)
+
+                                    # Send message
+                                    send_payload = {
+                                        "chat_id": int(TARGET_CHAT_ID),
+                                        "text": MY_SURNAMES
+                                    }
+                                    async with session.post(
+                                        f"{API_BASE}/messages",
+                                        headers=headers,
+                                        json=send_payload
+                                    ) as send_resp:
+                                        if send_resp.status == 200:
+                                            print("✅ Sent!")
+                                            last_training_time = now
+                                        else:
+                                            print(f"Send error: {send_resp.status}")
+                        else:
+                            print(f"Poll error {resp.status}")
+                            if resp.status == 429:
+                                await asyncio.sleep(10)
+                except Exception as e:
+                    print(f"Poll request failed: {e}")
+                    await asyncio.sleep(10)
             except Exception as e:
                 print(f"Poll exception: {e}")
                 await asyncio.sleep(5)
-            await asyncio.sleep(3)  # interval between polls
+            await asyncio.sleep(5)  # interval between polls
 
 # ---------- Main startup ----------
 async def main():
