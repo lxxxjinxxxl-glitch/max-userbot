@@ -34,11 +34,8 @@ def run_http_server():
     print(f"HTTP health server on 0.0.0.0:{port}")
     server.serve_forever()
 
-async def main():
+async def run_pymax():
     global last_training_time
-
-    threading.Thread(target=run_http_server, daemon=True).start()
-    await asyncio.sleep(0.5)
 
     client = MaxClient(phone=PHONE, work_dir="session")
 
@@ -73,6 +70,12 @@ async def main():
             last_training_time = now
 
     await client.start()
+
+async def main():
+    # pymax в фоне
+    asyncio.create_task(run_pymax())
+    # HTTP-сервер блокирует главный поток — Alwaysdata видит, что сайт жив
+    await asyncio.to_thread(run_http_server)
 
 if __name__ == "__main__":
     asyncio.run(main())
