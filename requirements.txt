@@ -1,1 +1,2 @@
-MaxAPI
+MaxAPImaxapi-python
+aiohttp

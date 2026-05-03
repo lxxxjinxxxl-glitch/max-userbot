@@ -2,8 +2,7 @@ import asyncio
 import re
 import time
 import os
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from aiohttp import web
 from pymax import MaxClient, Message
 
 PHONE = "+79537462323"
@@ -20,23 +19,25 @@ def is_training(text):
     has_date = bool(re.search(r'\d{2}\.\d{2}\.\d{2,4}', text))
     return hits >= 3 and has_date
 
-class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"OK")
-    def log_message(self, format, *args):
-        pass
+async def health_handler(request):
+    return web.Response(text="OK")
 
-def run_http_server():
+async def run_http_server():
     port = int(os.getenv("PORT", 8101))
-    host = os.getenv("IP", "0.0.0.0")
-    server = HTTPServer((host, port), HealthHandler)
-    print(f"HTTP health server on {host}:{port}")
-    server.serve_forever()
+    app = web.Application()
+    app.router.add_get("/", health_handler)
+    app.router.add_get("/{tail:.*}", health_handler)  # отвечаем на любой путь
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "::", port)  # IPv6, как требует Alwaysdata
+    await site.start()
+    print(f"HTTP health server on [::]:{port}")
 
 async def main():
     global last_training_time
+
+    # Запускаем HTTP-сервер прежде всего
+    await run_http_server()
 
     client = MaxClient(phone=PHONE, work_dir="session")
 
@@ -67,8 +68,6 @@ async def main():
             print("✅ Записан!")
             last_training_time = now
 
-    threading.Thread(target=run_http_server, daemon=True).start()
-    await asyncio.sleep(0.5)
     await client.start()
 
 if __name__ == "__main__":
