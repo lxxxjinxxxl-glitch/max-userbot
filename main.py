@@ -10,7 +10,7 @@ PHONE = "+79537462323"
 MY_SURNAMES = "Щекетов\nОкуньков"
 DELAY = 0          # Не используется, но оставим для совместимости
 COOLDOWN = 900     # 15 минут
-TARGET_CHAT_ID = -74285624063472
+TARGET_CHAT_ID = -72523834161885
 
 last_training_time = 0
 
