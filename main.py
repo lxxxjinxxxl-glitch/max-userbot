@@ -30,28 +30,27 @@ async def main():
     @client.on_message()
     async def on_message(msg: Message):
         global last_training_time
-
-        # Фильтруем вручную
-        if msg.chat_id != TARGET_CHAT_ID:
-            return
-
-        text = msg.text
-        if not text:
-            return
-
-        print(f"💬 {text[:80]}")
-
-        if is_training(text):
-            now = time.time()
-            if now - last_training_time < COOLDOWN:
-                print("🔁 Кулдаун")
+        try:
+            if msg.chat_id != TARGET_CHAT_ID:
                 return
-
-            print(f"🎯 Тренировка! Жду {DELAY} сек...")
-            await asyncio.sleep(DELAY)
-            await client.send_message(chat_id=TARGET_CHAT_ID, text=MY_SURNAMES)
-            print("✅ Записан!")
-            last_training_time = now
+            text = msg.text
+            if not text:
+                return
+            print(f"💬 {text[:80]}")
+            if is_training(text):
+                now = time.time()
+                if now - last_training_time < COOLDOWN:
+                    print("🔁 Кулдаун")
+                    return
+                print(f"🎯 Тренировка! Жду {DELAY} сек...")
+                await asyncio.sleep(DELAY)
+                await client.send_message(chat_id=TARGET_CHAT_ID, text=MY_SURNAMES)
+                print("✅ Записан!")
+                last_training_time = now
+        except Exception as e:
+            print(f"❌ Ошибка в on_message: {e}")
+            import traceback
+            traceback.print_exc()
 
     await client.start()
 
