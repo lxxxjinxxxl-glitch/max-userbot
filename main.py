@@ -2,13 +2,12 @@ import asyncio
 import re
 import time
 from pymax import MaxClient, Message
-from pymax.filters import Filters
 
 PHONE = "+79537462323"
 MY_SURNAMES = "Щекетов\nОкуньков"
 DELAY = 1
 COOLDOWN = 1800
-TARGET_CHAT_ID = -74285624063472  # Тестовый чат
+TARGET_CHAT_ID = -74285624063472
 
 last_training_time = 0
 
@@ -28,9 +27,13 @@ async def main():
         print("Клиент запущен. Ваш ID:", client.me.id)
         print(f"Мониторим чат id={TARGET_CHAT_ID}")
 
-    @client.on_message(Filters.chat(TARGET_CHAT_ID))
+    @client.on_message()
     async def on_message(msg: Message):
         global last_training_time
+
+        # Фильтруем вручную
+        if msg.chat_id != TARGET_CHAT_ID:
+            return
 
         text = msg.text
         if not text:
