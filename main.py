@@ -1,6 +1,8 @@
 import asyncio
 import re
 import time
+import os
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pymax import MaxClient, Message
 
 PHONE = "+79537462323"
@@ -17,8 +19,26 @@ def is_training(text):
     has_date = bool(re.search(r'\d{2}\.\d{2}\.\d{2,4}', text))
     return hits >= 3 and has_date
 
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+    def log_message(self, format, *args):
+        pass
+
+def run_http_server():
+    port = int(os.getenv("PORT", 8101))
+    server = HTTPServer(("::", port), HealthHandler)
+    print(f"HTTP health server on port {port}")
+    server.serve_forever()
+
 async def main():
     global last_training_time
+
+    # Запускаем HTTP-сервер в отдельном потоке
+    import threading
+    threading.Thread(target=run_http_server, daemon=True).start()
 
     client = MaxClient(phone=PHONE, work_dir="session")
 
@@ -29,15 +49,13 @@ async def main():
 
     @client.on_message()
     async def on_message(msg: Message):
-        print(f"📨 chat={msg.chat_id} text={msg.text[:50] if msg.text else 'None'}")
+        global last_training_time
 
         if msg.chat_id != TARGET_CHAT_ID:
             return
-
         text = msg.text
         if not text:
             return
-
         print(f"💬 {text[:80]}")
 
         if is_training(text):
@@ -45,7 +63,6 @@ async def main():
             if now - last_training_time < COOLDOWN:
                 print("🔁 Кулдаун")
                 return
-
             print(f"🎯 Тренировка! Жду {DELAY} сек...")
             await asyncio.sleep(DELAY)
             await client.send_message(chat_id=TARGET_CHAT_ID, text=MY_SURNAMES)
