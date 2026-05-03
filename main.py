@@ -2,6 +2,7 @@ import asyncio
 import re
 import time
 import os
+import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pymax import MaxClient, Message
 
@@ -36,10 +37,6 @@ def run_http_server():
 async def main():
     global last_training_time
 
-    # Запускаем HTTP-сервер в отдельном потоке
-    import threading
-    threading.Thread(target=run_http_server, daemon=True).start()
-
     client = MaxClient(phone=PHONE, work_dir="session")
 
     @client.on_start
@@ -69,6 +66,9 @@ async def main():
             print("✅ Записан!")
             last_training_time = now
 
+    # Запускаем HTTP-сервер перед клиентом
+    threading.Thread(target=run_http_server, daemon=True).start()
+    await asyncio.sleep(0.5)
     await client.start()
 
 if __name__ == "__main__":
